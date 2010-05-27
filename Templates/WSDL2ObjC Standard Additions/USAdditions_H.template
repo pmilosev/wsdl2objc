@@ -29,6 +29,23 @@
 
 @end
 
+@interface USDecimal : NSObject {
+    long long value;
+    NSUInteger numDecimals;
+}
+
+@property(assign) long long value;
+@property(assign) NSUInteger numDecimals;
+
+- (id)initWithValue:(long long)val decimals:(NSUInteger)decimals;
+- (NSString *)stringValue;
+
+- (xmlNodePtr)xmlNodeForDoc:(xmlDocPtr)doc elementName:(NSString *)elName elementNSPrefix:(NSString *)elNSPrefix;
++ (USDecimal *)deserializeString:(NSString *)stringValue;
++ (USDecimal *)deserializeNode:(xmlNodePtr)cur;
+
+@end
+
 @interface NSDate (USAdditions)
 
 - (xmlNodePtr)xmlNodeForDoc:(xmlDocPtr)doc elementName:(NSString *)elName elementNSPrefix:(NSString *)elNSPrefix;
