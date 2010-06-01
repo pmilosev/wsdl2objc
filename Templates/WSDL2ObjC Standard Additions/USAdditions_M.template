@@ -391,7 +391,25 @@ static const char encodingTable[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq
 
 @synthesize faultcode, faultstring, faultactor, detail;
 
-+ (SOAPFault *)deserializeNode:(xmlNodePtr)cur
++ (id)deserializeFaultDetails:(xmlNodePtr)cur expectedExceptions:(NSDictionary *)exceptions
+{
+    // check if any expected exception is in details
+    cur = cur->children;
+    if (cur && cur->type == XML_ELEMENT_NODE) {
+        for (NSString *eName in [exceptions allKeys]) {
+            if (xmlStrEqual(cur->name, (const xmlChar *) [eName cStringUsingEncoding:NSASCIIStringEncoding])) {
+                // expect only one exception
+                return [NSClassFromString([exceptions objectForKey:eName]) deserializeNode:cur];
+            }
+        }
+    }
+                    
+    // the old NSString fallback
+    cur = cur->parent;
+    return [NSString deserializeNode:cur];
+}
+
++ (SOAPFault *)deserializeNode:(xmlNodePtr)cur expectedExceptions:(NSDictionary *)exceptions
 {
 	SOAPFault *soapFault = [[SOAPFault new] autorelease];
 	NSString *ns = [NSString stringWithCString:(char*)cur->ns->href encoding:NSUTF8StringEncoding];
@@ -410,7 +428,7 @@ static const char encodingTable[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq
 					soapFault.faultactor = [NSString deserializeNode:cur];
 				}
 				if(xmlStrEqual(cur->name, (const xmlChar *) "detail")) {
-					soapFault.detail = [NSString deserializeNode:cur];
+                    soapFault.detail = [SOAPFault deserializeFaultDetails:cur expectedExceptions:exceptions];
 				}
 			}
 		}
@@ -440,7 +458,7 @@ static const char encodingTable[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq
 					soapFault.faultactor = [NSString deserializeNode:cur];
 				}
 				if(xmlStrEqual(cur->name, (const xmlChar *) "Detail")) {
-					soapFault.detail = [NSString deserializeNode:cur];
+					soapFault.detail = [SOAPFault deserializeFaultDetails:cur expectedExceptions:exceptions];
 				}
 				// TODO: Add "Role" ivar
 			}

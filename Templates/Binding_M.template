@@ -436,7 +436,12 @@
 %ENDFOR
 								if (xmlStrEqual(bodyNode->ns->prefix, cur->ns->prefix) && 
 									xmlStrEqual(bodyNode->name, (const xmlChar *) "Fault")) {
-									SOAPFault *bodyObject = [SOAPFault deserializeNode:bodyNode];
+                                    NSDictionary *exceptions = [NSDictionary dictionaryWithObjectsAndKeys:
+%FOREACH fault in operation.faults
+                                                                @"%«schema.prefix»_%«fault.name»", @"%«fault.name»",
+%ENDFOR
+                                                                nil];
+									SOAPFault *bodyObject = [SOAPFault deserializeNode:bodyNode expectedExceptions:exceptions];
 									//NSAssert1(bodyObject != nil, @"Errors while parsing body %s", bodyNode->name);
 									if (bodyObject != nil) [responseBodyParts addObject:bodyObject];
 								}
