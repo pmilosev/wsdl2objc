@@ -12,6 +12,7 @@
 	NSTimeInterval defaultTimeout;
 	NSMutableArray *cookies;
 	BOOL logXMLInOut;
+    BOOL ignoreEmptyResponse;
 	BOOL synchronousOperationComplete;
 	NSString *authUsername;
 	NSString *authPassword;
@@ -19,6 +20,7 @@
 
 @property (copy) NSURL *address;
 @property (assign) BOOL logXMLInOut;
+@property (assign) BOOL ignoreEmptyResponse;
 @property (assign) NSTimeInterval defaultTimeout;
 @property (nonatomic, retain) NSMutableArray *cookies;
 @property (nonatomic, retain) NSString *authUsername;

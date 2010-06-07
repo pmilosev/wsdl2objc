@@ -6,6 +6,7 @@
 @synthesize cookies;
 @synthesize authUsername;
 @synthesize authPassword;
+@synthesize ignoreEmptyResponse;
 
 - (id)init
 {
@@ -15,6 +16,7 @@
 		defaultTimeout = 10;//seconds
 		logXMLInOut = NO;
 		synchronousOperationComplete = NO;
+        ignoreEmptyResponse = NO;
 	}
 	
 	return self;
@@ -182,33 +184,37 @@
 		NSLog(@"ResponseHeaders:\n%@", [httpResponse allHeaderFields]);
 	}
 	
+    NSInteger contentLength = [[[httpResponse allHeaderFields] objectForKey:@"Content-Length"] integerValue];
 	NSMutableArray *cookies = [[NSHTTPCookie cookiesWithResponseHeaderFields:[httpResponse allHeaderFields] forURL:binding.address] mutableCopy];
 	
 	binding.cookies = cookies;
 	[cookies release];
 
 %IFEQ schema.wsdl.soapVersion 1.2	
-  if ([urlResponse.MIMEType rangeOfString:@"application/soap+xml"].length == 0) {
+    if ([urlResponse.MIMEType rangeOfString:@"application/soap+xml"].length == 0) {
 %ELSE
-  if ([urlResponse.MIMEType rangeOfString:@"text/xml"].length == 0) {
+    if ([urlResponse.MIMEType rangeOfString:@"text/xml"].length == 0) {
 %ENDIF
-		NSError *error = nil;
-
-		[connection cancel];
-		if ([httpResponse statusCode] >= 400) {
-			NSDictionary *userInfo = [NSDictionary dictionaryWithObject:[NSHTTPURLResponse localizedStringForStatusCode:[httpResponse statusCode]] forKey:NSLocalizedDescriptionKey];
-				
-			error = [NSError errorWithDomain:@"%«className»ResponseHTTP" code:[httpResponse statusCode] userInfo:userInfo];
-		} else {
-			NSDictionary *userInfo = [NSDictionary dictionaryWithObject:
-																[NSString stringWithFormat: @"Unexpected response MIME type to SOAP call:%@", urlResponse.MIMEType]
-																													 forKey:NSLocalizedDescriptionKey];
-
-			error = [NSError errorWithDomain:@"%«className»ResponseHTTP" code:1 userInfo:userInfo];
-		}
-				
-		[self connection:connection didFailWithError:error];
-  }
+		if ((binding.ignoreEmptyResponse == NO)
+            || contentLength != 0) {
+            NSError *error = nil;
+            [connection cancel];
+            if ([httpResponse statusCode] >= 400) {
+                NSDictionary *userInfo = [NSDictionary dictionaryWithObject:[NSHTTPURLResponse localizedStringForStatusCode:[httpResponse statusCode]] forKey:NSLocalizedDescriptionKey];
+                
+                error = [NSError errorWithDomain:@"MobilePaymentChannelBindingResponseHTTP" code:[httpResponse statusCode] userInfo:userInfo];
+            } else {
+                NSDictionary *userInfo = [NSDictionary dictionaryWithObject:
+                                          [NSString stringWithFormat: @"Unexpected response MIME type to SOAP call:%@", urlResponse.MIMEType]
+                                                                     forKey:NSLocalizedDescriptionKey];
+                error = [NSError errorWithDomain:@"MobilePaymentChannelBindingResponseHTTP" code:1 userInfo:userInfo];
+            }
+            
+            [self connection:connection didFailWithError:error];
+        } else {
+            [delegate operation:self completedWithResponse:response];
+        }
+    }
 }
 
 - (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
