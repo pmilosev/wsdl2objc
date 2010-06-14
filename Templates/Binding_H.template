@@ -7,6 +7,13 @@
 
 @end
 
+#define kServerAnchorCertificates   @"kServerAnchorCertificates"
+#define kServerAnchorsOnly          @"kServerAnchorsOnly"
+#define kClientIdentity             @"kClientIdentity"
+#define kClientCertificates         @"kClientCertificates"
+#define kClientUsername             @"kClientUsername"
+#define kClientPassword             @"kClientPassword"
+
 @interface %«className» : NSObject <%«className»ResponseDelegate> {
 	NSURL *address;
 	NSTimeInterval defaultTimeout;
@@ -14,8 +21,7 @@
 	BOOL logXMLInOut;
     BOOL ignoreEmptyResponse;
 	BOOL synchronousOperationComplete;
-	NSString *authUsername;
-	NSString *authPassword;
+    NSDictionary *authenticationProperties;
 }
 
 @property (copy) NSURL *address;
@@ -23,8 +29,7 @@
 @property (assign) BOOL ignoreEmptyResponse;
 @property (assign) NSTimeInterval defaultTimeout;
 @property (nonatomic, retain) NSMutableArray *cookies;
-@property (nonatomic, retain) NSString *authUsername;
-@property (nonatomic, retain) NSString *authPassword;
+@property (nonatomic, retain) NSDictionary *authenticationProperties;
 
 - (id)initWithAddress:(NSString *)anAddress;
 - (void)sendHTTPCallUsingBody:(NSString *)body soapAction:(NSString *)soapAction forOperation:(%«className»Operation *)operation;

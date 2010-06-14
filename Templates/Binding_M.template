@@ -4,9 +4,8 @@
 @synthesize defaultTimeout;
 @synthesize logXMLInOut;
 @synthesize cookies;
-@synthesize authUsername;
-@synthesize authPassword;
 @synthesize ignoreEmptyResponse;
+@synthesize authenticationProperties;
 
 - (id)init
 {
@@ -124,6 +123,7 @@
 
 - (void) dealloc
 {
+    [authenticationProperties release];
 	[address release];
 	[cookies release];
 	[super dealloc];
@@ -152,21 +152,99 @@
 	return self;
 }
 
+- (BOOL)connection:(NSURLConnection *)connection canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)protectionSpace {
+    /* provide YES into the properties for every protection space for which you like to force the manual authentication 
+     * e.g. providing YES for NSURLAuthenticationMethodServerTrust will skip automatic validation of the server's certificate
+     *      and will let you to manually validate it - usefull for self-signed certificates 
+     */
+    return [[binding.authenticationProperties objectForKey:protectionSpace.authenticationMethod] boolValue];
+}
+
 -(void)connection:(NSURLConnection *)connection didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge
 {
-	if ([challenge previousFailureCount] == 0) {
-		NSURLCredential *newCredential;
-		newCredential=[NSURLCredential credentialWithUser:self.binding.authUsername
-												 password:self.binding.authPassword
-											  persistence:NSURLCredentialPersistenceForSession];
-		[[challenge sender] useCredential:newCredential
-			   forAuthenticationChallenge:challenge];
-	} else {
-		[[challenge sender] cancelAuthenticationChallenge:challenge];
+    if ([challenge previousFailureCount] > 0) {
+        [[challenge sender] cancelAuthenticationChallenge:challenge];
 		NSDictionary *userInfo = [NSDictionary dictionaryWithObject:@"Authentication Error" forKey:NSLocalizedDescriptionKey];
 		NSError *authError = [NSError errorWithDomain:@"Connection Authentication" code:0 userInfo:userInfo];
 		[self connection:connection didFailWithError:authError];
-	}
+        
+        return;
+    }
+    
+    NSURLCredential *newCredential = nil;
+    NSURLProtectionSpace *protectionSpace = [challenge protectionSpace];
+    
+    // server authentication - NSURLAuthenticationMethodServerTrust
+    if ([protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust]) {
+        SecTrustRef trust = [protectionSpace serverTrust];
+        NSArray *anchors = [binding.authenticationProperties objectForKey:kServerAnchorCertificates];
+        BOOL anchorsOnly = (anchors != nil) && [[binding.authenticationProperties objectForKey:kServerAnchorsOnly] boolValue];
+        
+        if (anchors) {
+            SecTrustSetAnchorCertificates(trust, (CFArrayRef)anchors);
+            SecTrustSetAnchorCertificatesOnly(trust, anchorsOnly);
+        }
+        
+        SecTrustResultType res = kSecTrustResultInvalid;
+        OSStatus sanityChesk = SecTrustEvaluate(trust, &res);
+        if ((sanityChesk == noErr)
+            && ((res == kSecTrustResultProceed)                 // trusted certificate
+                || ((anchorsOnly)                               // we have validated the certificate against our CAs only - ignore user preferences
+                    && ((res == kSecTrustResultConfirm)             // valid but user should be asked for confirmation
+                        || (res == kSecTrustResultUnspecified)      // valid but user have not specified wheter to trust
+                        || (res == kSecTrustResultDeny)             // valid but user does not trusts this certificate
+                        )
+                    )
+                )
+            ) {
+            newCredential = [NSURLCredential credentialForTrust:trust];
+            [[challenge sender] useCredential:newCredential forAuthenticationChallenge:challenge];
+            
+            return;
+        }
+        
+        // validation error
+        [[challenge sender] cancelAuthenticationChallenge:challenge];
+		NSDictionary *userInfo = [NSDictionary dictionaryWithObject:@"Authentication Error" forKey:NSLocalizedDescriptionKey];
+		NSError *authError = [NSError errorWithDomain:@"Server Authentication" code:res userInfo:userInfo];
+		[self connection:connection didFailWithError:authError];
+        
+        return;
+    }
+    
+    // client authentication - NSURLAuthenticationMethodClientCertificate
+    if ([protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodClientCertificate]) {
+        SecIdentityRef identity = (SecIdentityRef)[binding.authenticationProperties objectForKey:kClientIdentity];
+        NSArray *certs = [binding.authenticationProperties objectForKey:kClientCertificates];
+        
+        // check if we support client certificate authentication
+        if (identity && certs) {
+            newCredential = [NSURLCredential credentialWithIdentity:identity
+                                                       certificates:certs
+                                                        persistence:NSURLCredentialPersistenceNone];
+            [[challenge sender] useCredential:newCredential forAuthenticationChallenge:challenge];
+            
+            return;
+        }
+        
+        // validation error
+        [[challenge sender] cancelAuthenticationChallenge:challenge];
+		NSDictionary *userInfo = [NSDictionary dictionaryWithObject:@"Authentication Error" forKey:NSLocalizedDescriptionKey];
+		NSError *authError = [NSError errorWithDomain:@"Client Authentication" code:0 userInfo:userInfo];
+		[self connection:connection didFailWithError:authError];
+        
+        return;
+    }
+    
+    /* TODO: there are several other authentication methods */
+    
+    // use the old username/password authentication as fallback
+    NSString *username = [binding.authenticationProperties objectForKey:kClientUsername];
+    NSString *password = [binding.authenticationProperties objectForKey:kClientPassword];
+    newCredential=[NSURLCredential credentialWithUser:username
+											 password:password
+										  persistence:NSURLCredentialPersistenceForSession];
+    [[challenge sender] useCredential:newCredential forAuthenticationChallenge:challenge];
 }
 
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)urlResponse
