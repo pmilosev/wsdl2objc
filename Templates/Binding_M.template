@@ -317,6 +317,7 @@
 {
 	[binding release];
 	[response release];
+    [delegate release];
 	delegate = nil;
 	[responseData release];
 	[urlConnection release];
