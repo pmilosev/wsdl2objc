@@ -97,3 +97,19 @@
 
 @end
 
+@protocol SOAPSignerDelegate
+- (NSData *)signData:(NSData *)rawData;
+- (NSData *)digestData:(NSData *)rawData;
+- (NSString *)base64Encode:(NSData *)rawData;
+@end
+
+@interface SOAPSigner : NSObject {
+    id<SOAPSignerDelegate> delegate;
+}
+
+@property (nonatomic, assign) id<SOAPSignerDelegate> delegate;
+
+- (NSString *)signRequest:(NSString *)req;
+
+@end
+

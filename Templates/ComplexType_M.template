@@ -1,5 +1,9 @@
 @implementation %«className»
 
+%IFNDEF superClass
+@synthesize soapSigner;
+%ENDIF
+
 - (id)init
 {
 	if((self = [super init])) {
@@ -28,6 +32,7 @@
 
 - (void)dealloc
 {
+    [soapSigner release];
 %IFDEF sequenceElements
 %FOREACH element in sequenceElements
 %IFEQ element.type.assignOrRetain retain

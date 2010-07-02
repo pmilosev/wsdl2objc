@@ -4,8 +4,9 @@
 @interface %«className» : %«superClass.classNameWithoutPtr» {
 %ELSE
 @interface %«className» : NSObject {
+SOAPSigner *soapSigner;
 %ENDIF
-	
+
 /* elements */
 %IFDEF sequenceElements
 %FOREACH element in sequenceElements
@@ -23,7 +24,6 @@
 	%«attribute.type.classNameWithPtr» %«attribute.name»;
 %ENDFOR
 %ENDIF
-
 }
 
 - (NSString *)nsPrefix;
@@ -36,6 +36,8 @@
 - (void)deserializeAttributesFromNode:(xmlNodePtr)cur;
 - (void)deserializeElementsFromNode:(xmlNodePtr)cur;
 
+@property (retain) SOAPSigner *soapSigner;
+
 /* elements */
 %IFDEF sequenceElements
 %FOREACH element in sequenceElements
@@ -47,6 +49,8 @@
 %ENDIF
 %ENDFOR
 %ENDIF
+
+
 
 /* attributes */
 %IFDEF attributes
