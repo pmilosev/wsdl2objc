@@ -36,7 +36,9 @@ SOAPSigner *soapSigner;
 - (void)deserializeAttributesFromNode:(xmlNodePtr)cur;
 - (void)deserializeElementsFromNode:(xmlNodePtr)cur;
 
+%IFNDEF superClass
 @property (retain) SOAPSigner *soapSigner;
+%ENDIF
 
 /* elements */
 %IFDEF sequenceElements

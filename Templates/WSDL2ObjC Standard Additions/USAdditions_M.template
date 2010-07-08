@@ -398,19 +398,22 @@ static const char encodingTable[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq
 
 + (id)deserializeFaultDetails:(xmlNodePtr)cur expectedExceptions:(NSDictionary *)exceptions
 {
-    // check if any expected exception is in details
-    cur = cur->children;
-    if (cur && cur->type == XML_ELEMENT_NODE) {
-        for (NSString *eName in [exceptions allKeys]) {
-            if (xmlStrEqual(cur->name, (const xmlChar *) [eName cStringUsingEncoding:NSASCIIStringEncoding])) {
-                // expect only one exception
-                return [NSClassFromString([exceptions objectForKey:eName]) deserializeNode:cur];
+    if (cur->children) {
+        cur = cur->children;
+        if (cur && cur->type == XML_ELEMENT_NODE) {
+            // check if any expected exception is in details
+            for (NSString *eName in [exceptions allKeys]) {
+                if (xmlStrEqual(cur->name, (const xmlChar *) [eName cStringUsingEncoding:NSASCIIStringEncoding])) {
+                    // expect only one exception
+                    return [NSClassFromString([exceptions objectForKey:eName]) deserializeNode:cur];
+                }
             }
         }
+        
+        cur = cur->parent;
     }
-                    
+    
     // the old NSString fallback
-    cur = cur->parent;
     return [NSString deserializeNode:cur];
 }
 
