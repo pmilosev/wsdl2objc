@@ -502,7 +502,7 @@ static const char encodingTable[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq
 
 @synthesize delegate;
 
-- (id) initWithDelegate:(id)del
+- (id) initWithDelegate:(id<SOAPSignerDelegate>)del
 {
     self = [super init];
     if (self != nil) {
