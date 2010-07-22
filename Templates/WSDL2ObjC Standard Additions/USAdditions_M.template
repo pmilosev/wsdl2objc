@@ -128,8 +128,13 @@
     if ([self numDecimals] == 0) {
         strValue = [NSString stringWithFormat:@"%qi", value];
     } else {
-        strValue = [NSString stringWithFormat:@"%qi.%qi", 
-                    value / (int) pow(10, numDecimals), value % (int) pow(10, numDecimals)];
+        long long decimals = value % (int) pow(10, numDecimals);
+        NSString *decimalsString = [NSString stringWithFormat:@"%qi", decimals];
+        while ([decimalsString length] < numDecimals) {
+            decimalsString = [NSString stringWithFormat:@"0%@", decimalsString];
+        }
+        strValue = [NSString stringWithFormat:@"%qi.%@", 
+                    value / (int) pow(10, numDecimals), decimalsString];
     }
     return strValue;
 }
@@ -153,17 +158,27 @@
 
 + (USDecimal *)deserializeString:(NSString *)stringValue
 {
-    NSArray *parts = [stringValue componentsSeparatedByString:@"."];
-    NSUInteger decimals = 0;
-    long long val = 0;
-    if ([parts count] == 1) {
-        val = [stringValue longLongValue];
-    } else if ([parts count] == 2) {
-        decimals = [[parts objectAtIndex:1] length];
-        val = [[NSString stringWithFormat:@"%@%@", [parts objectAtIndex:0], [parts objectAtIndex:1]] longLongValue];
+    NSArray *parts = nil;
+    
+    NSRange tempRange = [stringValue rangeOfString:@","];
+    if (tempRange.location != NSNotFound) {
+        parts = [stringValue componentsSeparatedByString:@","];
     }
-    USDecimal *decimal = [[[USDecimal alloc] initWithValue:val decimals:decimals] autorelease];
-    return decimal;
+    tempRange = [stringValue rangeOfString:@"."];
+    if (tempRange.location != NSNotFound) {
+        parts = [stringValue componentsSeparatedByString:@"."];
+    }
+    
+    if (parts) {
+        NSUInteger decimals = [[parts objectAtIndex:1] length];
+        long long val = [[NSString stringWithFormat:@"%@%@", [parts objectAtIndex:0], [parts objectAtIndex:1]] longLongValue];
+        USDecimal *decimal = [[[USDecimal alloc] initWithValue:val decimals:decimals] autorelease];
+        return decimal;
+    } else {
+        USDecimal *decimal = [[[USDecimal alloc] initWithValue:[stringValue longLongValue] decimals:0] autorelease];
+        return decimal;
+    }
+    return nil;
 }
 
 + (USDecimal *)deserializeNode:(xmlNodePtr)cur
