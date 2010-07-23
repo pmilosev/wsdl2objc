@@ -36,7 +36,7 @@ SOAPSigner *soapSigner;
 - (void)deserializeAttributesFromNode:(xmlNodePtr)cur;
 - (void)deserializeElementsFromNode:(xmlNodePtr)cur;
 
-@property (retain) SOAPSigner *soapSigner;
+@property (assign) SOAPSigner *soapSigner;
 
 /* elements */
 %IFDEF sequenceElements
