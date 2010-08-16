@@ -89,6 +89,15 @@
 
 - (void)sendHTTPCallUsingBody:(NSString *)outputBody soapAction:(NSString *)soapAction forOperation:(%«className»Operation *)operation
 {
+    if (!outputBody) {
+        NSError * err = [NSError errorWithDomain:@"%«className»NULLRequestExcpetion"
+                                            code:0
+                                        userInfo:nil];
+        
+        [operation connection:nil didFailWithError:err];
+        return;
+    }
+
 	NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:self.address 
 																												 cachePolicy:NSURLRequestReloadIgnoringLocalAndRemoteCacheData
 																										 timeoutInterval:self.defaultTimeout];
@@ -280,12 +289,12 @@
             if ([httpResponse statusCode] >= 400) {
                 NSDictionary *userInfo = [NSDictionary dictionaryWithObject:[NSHTTPURLResponse localizedStringForStatusCode:[httpResponse statusCode]] forKey:NSLocalizedDescriptionKey];
                 
-                error = [NSError errorWithDomain:@"MobilePaymentChannelBindingResponseHTTP" code:[httpResponse statusCode] userInfo:userInfo];
+                error = [NSError errorWithDomain:@"%«className»HTTPResponseException" code:[httpResponse statusCode] userInfo:userInfo];
             } else {
                 NSDictionary *userInfo = [NSDictionary dictionaryWithObject:
                                           [NSString stringWithFormat: @"Unexpected response MIME type to SOAP call:%@", urlResponse.MIMEType]
                                                                      forKey:NSLocalizedDescriptionKey];
-                error = [NSError errorWithDomain:@"MobilePaymentChannelBindingResponseHTTP" code:1 userInfo:userInfo];
+                error = [NSError errorWithDomain:@"%«className»HTTPResponseException" code:1 userInfo:userInfo];
             }
             
             [self connection:connection didFailWithError:error];

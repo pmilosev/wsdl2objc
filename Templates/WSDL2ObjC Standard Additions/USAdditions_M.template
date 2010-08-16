@@ -742,10 +742,17 @@ xmlXPathObjectPtr execute_xpath_expression(xmlDocPtr doc, const xmlChar* xpathEx
     
     size = xmlC14NDocDumpMemory(doc, xpathObj->nodesetval, 1, NULL, 1, &canonicalized);
     
-    NSString *signatureValue = [delegate base64Encode:[delegate signData:[NSData dataWithBytes:canonicalized length:size]]];
+    NSData *signedData = [delegate signData:[NSData dataWithBytes:canonicalized length:size]];
     xmlFree(canonicalized);
     xmlXPathFreeObject(xpathObj);
     
+    // if the signing fails for any reason return NULL so that the request is not sent at all
+    if (!signedData) {
+        xmlFreeDoc(doc);
+        return nil;
+    }
+    
+    NSString *signatureValue = [delegate base64Encode:signedData];
     xpathObj = execute_xpath_expression(doc, 
                                         (const xmlChar *)"/soap:Envelope/soap:Header/wsse:Security/ds:Signature/ds:SignatureValue",
                                         (const xmlChar *)"soap=http://schemas.xmlsoap.org/soap/envelope/ "
