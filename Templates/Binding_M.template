@@ -1,3 +1,11 @@
+#if ADVANCED_AUTHENTICATION
+#if TARGET_OS_IPHONE
+
+#import <Security/Security.h>
+
+#endif
+#endif
+
 @implementation %«className»
 
 @synthesize address;
@@ -179,6 +187,10 @@
         
         return;
     }
+
+#if ADVANCED_AUTHENTICATION
+
+#if TARGET_OS_IPHONE
     
     NSURLCredential *newCredential = nil;
     NSURLProtectionSpace *protectionSpace = [challenge protectionSpace];
@@ -186,8 +198,12 @@
     // server authentication - NSURLAuthenticationMethodServerTrust
     if ([protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust]) {
         SecTrustRef trust = [protectionSpace serverTrust];
-        NSArray *anchors = [binding.authenticationProperties objectForKey:kServerAnchorCertificates];
-        BOOL anchorsOnly = (anchors != nil) && [[binding.authenticationProperties objectForKey:kServerAnchorsOnly] boolValue];
+        NSArray *anchors = [[binding.authenticationProperties objectForKey:NSURLAuthenticationMethodServerTrust] 
+                            objectForKey:kServerAnchorCertificates];
+        BOOL anchorsOnly = (anchors != nil) && [[[binding.authenticationProperties 
+                                                objectForKey:NSURLAuthenticationMethodServerTrust] 
+                                                 objectForKey:kServerAnchorsOnly] 
+                                                 boolValue];
         
         if (anchors) {
             SecTrustSetAnchorCertificates(trust, (CFArrayRef)anchors);
@@ -196,16 +212,10 @@
         
         SecTrustResultType res = kSecTrustResultInvalid;
         OSStatus sanityChesk = SecTrustEvaluate(trust, &res);
-        if ((sanityChesk == noErr)
-            && ((res == kSecTrustResultProceed)                 // trusted certificate
-                || ((anchorsOnly)                               // we have validated the certificate against our CAs only - ignore user preferences
-                    && ((res == kSecTrustResultConfirm)             // valid but user should be asked for confirmation
-                        || (res == kSecTrustResultUnspecified)      // valid but user have not specified wheter to trust
-                        || (res == kSecTrustResultDeny)             // valid but user does not trusts this certificate
-                        )
-                    )
-                )
-            ) {
+        if ((sanityChesk == noErr) &&
+            ([delegate performSelector:[[binding.authenticationProperties 
+                                        objectForKey:NSURLAuthenticationMethodServerTrust]
+                                         objectForKey:kValidateResult]])) {
             newCredential = [NSURLCredential credentialForTrust:trust];
             [[challenge sender] useCredential:newCredential forAuthenticationChallenge:challenge];
             
@@ -223,14 +233,20 @@
     
     // client authentication - NSURLAuthenticationMethodClientCertificate
     if ([protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodClientCertificate]) {
-        SecIdentityRef identity = (SecIdentityRef)[binding.authenticationProperties objectForKey:kClientIdentity];
-        NSArray *certs = [binding.authenticationProperties objectForKey:kClientCertificates];
+        SecIdentityRef identity = (SecIdentityRef)[[binding.authenticationProperties 
+                                                   objectForKey:NSURLAuthenticationMethodClientCertificate] 
+                                                    objectForKey:kClientIdentity];
+        NSArray *certs = [[binding.authenticationProperties 
+                          objectForKey:NSURLAuthenticationMethodClientCertificate] 
+                           objectForKey:kClientCertificates];
         
         // check if we support client certificate authentication
         if (identity && certs) {
             newCredential = [NSURLCredential credentialWithIdentity:identity
                                                        certificates:certs
-                                                        persistence:NSURLCredentialPersistenceNone];
+                                                        persistence:[[binding.authenticationProperties 
+                                                                     objectForKey:NSURLAuthenticationMethodClientCertificate] 
+                                                                      objectForKey:kNSURLCredentialPersistence]];
             [[challenge sender] useCredential:newCredential forAuthenticationChallenge:challenge];
             
             return;
@@ -245,15 +261,30 @@
         return;
     }
     
-    /* TODO: there are several other authentication methods */
+#endif
+#else 
+    
+    [NSException raise:@"Authentication method not supported" format:@"Manual authentication not possible in Mac OSX"];
+    
+#endif
     
     // use the old username/password authentication as fallback
-    NSString *username = [binding.authenticationProperties objectForKey:kClientUsername];
-    NSString *password = [binding.authenticationProperties objectForKey:kClientPassword];
-    newCredential=[NSURLCredential credentialWithUser:username
-											 password:password
-										  persistence:NSURLCredentialPersistenceForSession];
-    [[challenge sender] useCredential:newCredential forAuthenticationChallenge:challenge];
+    if ([protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodHTTPBasic) {
+        NSString *username = [[binding.authenticationProperties objectForKey:NSURLAuthenticationMethodHTTPBasic] 
+                              objectForKey:kClientUsername];
+        NSString *password = [[binding.authenticationProperties objectForKey:NSURLAuthenticationMethodHTTPBasic] 
+                              objectForKey:kClientPassword];
+        newCredential=[NSURLCredential credentialWithUser:username
+                                                password:password
+                                            persistence:[[binding.authenticationProperties 
+                                                         objectForKey:NSURLAuthenticationMethodHTTPBasic] 
+                                                          objectForKey:kNSURLCredentialPersistence]];
+        [[challenge sender] useCredential:newCredential forAuthenticationChallenge:challenge];
+        
+        return;
+    }
+    
+    [NSException raise:@"Authentication method not supported" format:@"%@ not supported.", protectionSpace.authenitcationMethod];
 }
 
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)urlResponse
