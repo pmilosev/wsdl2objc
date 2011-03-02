@@ -13,6 +13,8 @@
 #define kClientCertificates         @"kClientCertificates"
 #define kClientUsername             @"kClientUsername"
 #define kClientPassword             @"kClientPassword"
+#define kNSURLCredentialPersistence @"kNSURLCredentialPersistence"
+#define kValidateResult             @"kValidateResult"
 
 @interface %«className» : NSObject <%«className»ResponseDelegate> {
 	NSURL *address;
