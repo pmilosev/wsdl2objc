@@ -20,11 +20,7 @@
  THE SOFTWARE.
  */
 
-<<<<<<< HEAD
 #import <Foundation/Foundation.h>
-=======
-#import <Cocoa/Cocoa.h>
->>>>>>> trunk
 
 int main(int argc, char *argv[])
 {
