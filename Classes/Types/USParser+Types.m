@@ -90,12 +90,12 @@
 - (void)processUnionElement:(NSXMLElement *)el type:(USType *)type {
 	// TODO:	properly support union.
 	type.representationClass = @"NSString *";
-//	NSLog(@"TYPE IS: %@, %@", type.typeName, type.representationClass);
+	NVLOG(@"TYPE IS: %@, %@", type.typeName, type.representationClass);
 }
 
 - (void)processListElement:(NSXMLElement *)el type:(USType *)type {
 	type.representationClass = @"NSString *";
-//	NSLog(@"TYPE IS: %@, %@", type.typeName, type.representationClass);
+	NVLOG(@"TYPE IS: %@, %@", type.typeName, type.representationClass);
 }
 
 - (void)processRestrictionElement:(NSXMLElement *)el type:(USType *)type
@@ -143,7 +143,7 @@
 	}
 	enumerationValue = [enumerationValue stringByReplacingOccurrencesOfString:@" " withString:@"_"];
 	enumerationValue = [enumerationValue stringByReplacingOccurrencesOfString:@":" withString:@"_"];
-	[type.enumerationValues addObject:[enumerationValue stringByReplacingOccurrencesOfString:kIllegalClassCharactersString withString:@""]];
+	[type.enumerationValues addObject:[[enumerationValue componentsSeparatedByCharactersInSet:kIllegalClassCharactersSet] componentsJoinedByString:@""]];
 }
 
 #pragma mark Types:Schema:ComplexType
@@ -186,10 +186,12 @@
 
 - (void)processSequenceElement:(NSXMLElement *)el type:(USType *)type
 {
+	NVLOG(@"PROCESSING SEQ/CHOICE/ANY: %@ (%@)", el.name, [[el parent] name]);
 	for(NSXMLNode *child in [el children]) {
 		NSString *localName = [child localName];
-		if (([localName isEqualToString:@"choice"]) ||
-			([localName isEqualToString:@"any"])) {
+		if(([localName isEqualToString:@"sequence"]) ||
+		   ([localName isEqualToString:@"choice"]) ||
+		   ([localName isEqualToString:@"any"])){
 			// don't properly handle choice and any yet, but encompass all their elements
 			// into the sequence as if it were one big sequence
 			[self processSequenceElement:(NSXMLElement*)child type:type];
@@ -202,6 +204,7 @@
 
 - (void)processSequenceChildElement:(NSXMLElement *)el type:(USType *)type
 {
+	NVLOG(@"PROCESSING: %@ (%@)", el.name, [[el parent] name]);
 	NSString *localName = [el localName];
 	
 	if([localName isEqualToString:@"element"]) {
@@ -211,7 +214,7 @@
 
 - (void)processSequenceElementElement:(NSXMLElement *)el type:(USType *)type
 {
-	USSequenceElement *seqElement = [[USSequenceElement new] autorelease];
+	USSequenceElement *seqElement = [USSequenceElement new];
 	
 	NSXMLNode *refNode = [el attributeForName:@"ref"];
 	if(refNode != nil) {
@@ -226,23 +229,23 @@
 		if(element.hasBeenParsed) {
 			seqElement.name = element.name;
 			seqElement.type = element.type;
-			//	NSLog(@"REF PARSED SEQELEMENT NAME: %@ (%@)", element.name, [[el parent] name]);
+			NVLOG(@"REF PARSED SEQELEMENT NAME: %@ (%@)", element.name, [[el parent] name]);
 		} else {
 			// the sequence element name and type will be assigned after its referring element is parsed
 			[element.waitingSeqElements addObject:seqElement];
-		//	NSLog(@"REF NOT PARSED SEQELEMENT NAME: %@ (%@)", element.name, [[el parent] name]);
+			NVLOG(@"REF NOT PARSED SEQELEMENT NAME: %@ (%@)", element.name, [[el parent] name]);
 		}		
 		
 	} else {
 		
-		NSString *name = [[el attributeForName:@"name"] stringValue];
+		NSString *name = [[[[el attributeForName:@"name"] stringValue] componentsSeparatedByCharactersInSet:kIllegalClassCharactersSet] componentsJoinedByString:@""];
 		seqElement.name = name;
-		// NSLog(@"SEQELEMENT NAME: %@ (%@)", name, [[[el parent] parent] name]);
+		NVLOG(@"SEQELEMENT NAME: %@ (%@)", name, [[[el parent] parent] name]);
 		
 		NSString *prefixedType = [[el attributeForName:@"type"] stringValue];
 		if (prefixedType == nil) {
 			// The type is inline, as a subnode <complexType> or <simpleType>
-			prefixedType = [[el attributeForName:@"name"] stringValue];
+			prefixedType = name;
 			NSUInteger childIdx = 0;
 			for(NSXMLNode *child in [el children]) {			
 				if([[child localName] hasSuffix:@"Type"]) {
@@ -254,8 +257,9 @@
 					NSString *elType = [type.schema.localPrefix stringByAppendingFormat:@":%@", prefixedType];
 					[el addAttribute:[NSXMLNode attributeWithName:@"type" stringValue:elType]];
 					[el removeChildAtIndex:childIdx];
-					// NSLog(@"*** Reprocessing a type: %@", elType);
+					NVLOG(@"*** Reprocessing a type: %@", elType);
 					[self processSequenceElementElement:el type:type];
+                    [seqElement release];
 					return;
 				}
 				childIdx++;
@@ -287,6 +291,7 @@
 	}
 	
 	[type.sequenceElements addObject:seqElement];
+    [seqElement release];
 }
 
 - (void)processComplexContentElement:(NSXMLElement *)el type:(USType *)type
@@ -434,7 +439,7 @@
 	// If the schema is not nil, we assign the attribute to the schema
 	// Otherwise we assume the type is not nil and we assign the attribute to the type
 	
-	USAttribute *attribute = [[USAttribute new] autorelease];
+	USAttribute *attribute = [USAttribute new];
 	if (schema != nil) {
 		attribute.schema = schema;
 	} else {
@@ -495,6 +500,7 @@
 	} else {
 		[type.attributes addObject:attribute];
 	}
+    [attribute release];
 }
 
 - (void)processAttributeElementChildElement:(NSXMLElement *)el attribute:(USAttribute *)attribute

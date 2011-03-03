@@ -1,10 +1,26 @@
 %IFDEF className
 
+%IFEQ superClass.className "NSString *"
+%IFDEF attributes
+%DEFINE IsAttributedString 1
+%ENDIF
+%ENDIF
+
 %IFDEF superClass
-@interface %«className» : %«superClass.classNameWithoutPtr» {
-%ELSE
-@interface %«className» : NSObject {
+%IFDEF IsAttributedString
+@interface %«className» : NSObject <NSCoding> {
 SOAPSigner *soapSigner;
+%ELSE
+@interface %«className» : %«superClass.classNameWithoutPtr» {
+%ENDIF
+%ELSE
+@interface %«className» : NSObject <NSCoding> {
+SOAPSigner *soapSigner;
+%ENDIF
+
+%IFDEF IsAttributedString
+/* content */
+NSString *_content;
 %ENDIF
 
 /* elements */
@@ -24,6 +40,7 @@ SOAPSigner *soapSigner;
 	%«attribute.type.classNameWithPtr» %«attribute.name»;
 %ENDFOR
 %ENDIF
+
 }
 
 - (NSString *)nsPrefix;
@@ -38,6 +55,15 @@ SOAPSigner *soapSigner;
 
 %IFNDEF superClass
 @property (retain) SOAPSigner *soapSigner;
+%ELSE
+%IFDEF IsAttributedString
+@property (retain) SOAPSigner *soapSigner;
+%ENDIF
+%ENDIF
+
+%IFDEF IsAttributedString
+/* content */
+@property (nonatomic, retain) NSString *_content;
 %ENDIF
 
 /* elements */
@@ -45,20 +71,18 @@ SOAPSigner *soapSigner;
 %FOREACH element in sequenceElements
 %IF element.useAnArray
 - (void)add%«element.uname»:(%«element.type.classNameWithPtr»)toAdd;
-@property (readonly) NSMutableArray * %«element.name»;
+@property (nonatomic, readonly) NSMutableArray * %«element.name»;
 %ELSE
-@property (%«element.type.assignOrRetain») %«element.type.classNameWithPtr» %«element.name»;
+@property (nonatomic, %«element.type.assignOrRetain») %«element.type.classNameWithPtr» %«element.name»;
 %ENDIF
 %ENDFOR
 %ENDIF
-
-
 
 /* attributes */
 %IFDEF attributes
 - (NSDictionary *)attributes;
 %FOREACH attribute in attributes
-@property (%«attribute.type.assignOrRetain») %«attribute.type.classNameWithPtr» %«attribute.name»;
+@property (nonatomic, %«attribute.type.assignOrRetain») %«attribute.type.classNameWithPtr» %«attribute.name»;
 %ENDFOR
 %ENDIF
 

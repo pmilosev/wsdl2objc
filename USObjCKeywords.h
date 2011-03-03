@@ -20,9 +20,9 @@
  THE SOFTWARE.
  */
 
-#import <Cocoa/Cocoa.h>
+#import <Foundation/Foundation.h>
 
-#define kIllegalClassCharactersString @"-"
+#define kIllegalClassCharactersSet [NSCharacterSet characterSetWithCharactersInString:@"-./\\"]
 
 @interface USObjCKeywords : NSObject {
 	NSArray *keywords;
