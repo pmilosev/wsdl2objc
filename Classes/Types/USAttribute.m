@@ -48,7 +48,6 @@
 	[name release];
 	[wsdlName release];
 	[attributeDefault release];
-	[(id)type release];
 	[super dealloc];
 }
 
