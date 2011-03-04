@@ -22,7 +22,6 @@
 		timeout = [[self class] defaultTimeout];
 		logXMLInOut = NO;
 		synchronousOperationComplete = NO;
-		credentialPersistence = NSURLCredentialPersistenceForSession;
 	}
 	
 	return self;
