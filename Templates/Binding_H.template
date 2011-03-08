@@ -32,7 +32,7 @@
 @property (nonatomic) NSTimeInterval timeout;
 @property (nonatomic, retain) NSMutableArray *cookies;
 @property (nonatomic, retain) NSMutableDictionary *customHeaders;
-@property (nonatomic, retain) NSDictionary *authenticationProperties;
+@property (nonatomic, copy) NSDictionary *authenticationProperties;
 
 + (NSTimeInterval) defaultTimeout;
 
@@ -58,7 +58,7 @@
 
 @property (nonatomic, retain) %«className» *binding;
 @property (nonatomic, readonly) %«className»Response *response;
-@property (nonatomic, retain) id<%«className»ResponseDelegate> delegate;
+@property (nonatomic, assign) id<%«className»ResponseDelegate> delegate;
 @property (nonatomic, retain) NSMutableData *responseData;
 @property (nonatomic, retain) NSURLConnection *urlConnection;
 

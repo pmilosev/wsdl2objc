@@ -6,7 +6,22 @@
 @synthesize ignoreEmptyResponse;
 @synthesize cookies;
 @synthesize customHeaders;
-@synthesize authenticationProperties;
+
+- (void)setAuthenticationProperties:(NSMutableDictionary *)aAuthenticationPropperties
+{
+	[authenticationProperties release];
+	authenticationProperties = [aAuthenticationPropperties mutableCopy];
+	if ([authenticationProperties objectForKey:kNSURLCredentialPersistence] == nil)
+	{
+		[authenticationProperties setObject:[NSNumber numberWithInt:NSURLCredentialPersistenceForSession]
+									 forKey:kNSURLCredentialPersistence];
+	}
+}
+
+- (NSDictionary *)authenticationProperties
+{
+    return authenticationProperties;
+}
 
 + (NSTimeInterval)defaultTimeout
 {
